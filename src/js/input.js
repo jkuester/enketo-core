@@ -448,17 +448,25 @@ export default {
         const questions = grp.matches('.question')
             ? [grp]
             : grp.querySelectorAll('.question');
+
+        /** @type {Array<[Element, any]>} */
+        const clearedValues = [];
+
         questions.forEach((question) => {
             const control = question.querySelector(
                 'input:not(.ignore), select:not(.ignore), textarea:not(.ignore)'
             );
             if (control) {
+                clearedValues.push([control, this.getVal(control)]);
+
                 this.setVal(control, '', event1);
                 if (event2) {
                     control.dispatchEvent(event2);
                 }
             }
         });
+
+        return clearedValues;
     },
     /**
      * @param {Element} control - form control HTML element

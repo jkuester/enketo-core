@@ -7,6 +7,11 @@
 import events from './event';
 import { closestAncestorUntil, getChild, getChildren } from './dom-utils';
 
+/**
+ * @type {WeakMap<Element, Array<[Element, any]>>}
+ */
+const clearedValues = new WeakMap();
+
 export default {
     /**
      * @param {UpdatedDataNodes} [updated] - The object containing info on updated data nodes.
@@ -231,6 +236,16 @@ export default {
         let change = false;
 
         if (!this.selfRelevant(branchNode)) {
+            const cleared = clearedValues.get(branchNode);
+
+            if (cleared != null) {
+                cleared.forEach(([element, value]) => {
+                    this.form.input.setVal(element, value, events.Change());
+                });
+
+                clearedValues.delete(branchNode);
+            }
+
             change = true;
             branchNode.classList.remove('disabled', 'pre-init');
             // Update calculated items, both individual question or descendants of group
@@ -268,8 +283,15 @@ export default {
             forceClearNonRelevant
         ) {
             changed = true;
-            if (forceClearNonRelevant) {
-                this.clear(branchNode, path);
+
+            const { clearNonRelevant } = this.form.options;
+
+            if (clearNonRelevant || forceClearNonRelevant) {
+                const cleared = this.clear(branchNode, path);
+
+                if (clearNonRelevant) {
+                    clearedValues.set(branchNode, cleared);
+                }
             }
 
             this.deactivate(branchNode);
@@ -287,11 +309,12 @@ export default {
     clear(branchNode, path) {
         // A change event ensures the model is updated
         // An inputupdate event is required to update widgets
-        this.form.input.clear(
+        const cleared = this.form.input.clear(
             branchNode,
             events.Change(),
             events.InputUpdate()
         );
+
         // Update calculated items if branch is a group
         // We exclude question branches here because those will have been cleared already in the previous line.
         if (branchNode.matches('.or-group, .or-group-data')) {
@@ -303,6 +326,8 @@ export default {
                 true
             );
         }
+
+        return cleared;
     },
     /**
      * @param {Element} branchNode - branch node

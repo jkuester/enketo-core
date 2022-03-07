@@ -134,6 +134,56 @@ describe('calculate functionality', () => {
 
         expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
 
+        a.value = '';
+        a.dispatchEvent(events.Change());
+
+        expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
+    });
+
+    it('recalculates non-relevant values when they are cleared', () => {
+        const form = loadForm('relevant-calcs.xml', null, {
+            clearNonRelevant: true,
+        });
+
+        form.init();
+
+        const grp = form.model.xml.querySelector('grp');
+
+        expect(grp.textContent.replace(/\s/g, '')).to.equal('');
+
+        const a = form.view.html.querySelector('input[name="/data/a"]');
+
+        a.value = 'a';
+        a.dispatchEvent(events.Change());
+
+        expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
+
+        a.value = '';
+        a.dispatchEvent(events.Change());
+
+        expect(grp.textContent.replace(/\s/g, '')).to.equal('');
+    });
+
+    it('recalculates relevant values when they are restored', () => {
+        const form = loadForm('relevant-calcs.xml', null, {
+            clearNonRelevant: true,
+        });
+
+        form.init();
+
+        const grp = form.model.xml.querySelector('grp');
+
+        expect(grp.textContent.replace(/\s/g, '')).to.equal('');
+
+        const a = form.view.html.querySelector('input[name="/data/a"]');
+
+        a.value = 'a';
+        a.dispatchEvent(events.Change());
+
+        expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
+
+        a.value = '';
+        a.dispatchEvent(events.Change());
         a.value = 'a';
         a.dispatchEvent(events.Change());
 
