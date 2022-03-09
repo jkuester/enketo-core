@@ -140,9 +140,9 @@ describe('calculate functionality', () => {
         expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
     });
 
-    it('recalculates non-relevant values when they are cleared', () => {
+    it('recalculates non-relevant values when they are excluded from calculations', () => {
         const form = loadForm('relevant-calcs.xml', null, {
-            clearNonRelevant: true,
+            excludeNonRelevant: true,
         });
 
         form.init();
@@ -166,7 +166,7 @@ describe('calculate functionality', () => {
 
     it('recalculates relevant values when they are restored', () => {
         const form = loadForm('relevant-calcs.xml', null, {
-            clearNonRelevant: true,
+            excludeNonRelevant: true,
         });
 
         form.init();
@@ -188,5 +188,124 @@ describe('calculate functionality', () => {
         a.dispatchEvent(events.Change());
 
         expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
+    });
+
+    it('excludes children of non-relevant parents from calculations', () => {
+        const form = loadForm('relevant-calcs.xml', null, {
+            excludeNonRelevant: true,
+        });
+
+        form.init();
+
+        const child = form.model.xml.querySelector('is-child-relevant');
+
+        expect(child.textContent).to.equal('');
+
+        const setsGroupRelevance = form.view.html.querySelector(
+            'input[name="/data/sets-group-relevance"]'
+        );
+        const setsChildRelevance = form.view.html.querySelector(
+            'input[name="/data/sets-child-relevance"]'
+        );
+
+        setsGroupRelevance.value = '1';
+        setsGroupRelevance.dispatchEvent(events.Change());
+
+        setsChildRelevance.value = '2';
+        setsChildRelevance.dispatchEvent(events.Change());
+
+        expect(child.textContent).to.equal('is relevant');
+
+        setsGroupRelevance.value = '';
+        setsGroupRelevance.dispatchEvent(events.Change());
+
+        expect(child.textContent).to.equal('');
+    });
+
+    it('restores relevance of calculations of children of non-relevant when their parents become relevant', () => {
+        const form = loadForm('relevant-calcs.xml', null, {
+            excludeNonRelevant: true,
+        });
+
+        form.init();
+
+        const child = form.model.xml.querySelector('is-child-relevant');
+
+        expect(child.textContent).to.equal('');
+
+        const setsGroupRelevance = form.view.html.querySelector(
+            'input[name="/data/sets-group-relevance"]'
+        );
+        const setsChildRelevance = form.view.html.querySelector(
+            'input[name="/data/sets-child-relevance"]'
+        );
+
+        setsGroupRelevance.value = '1';
+        setsGroupRelevance.dispatchEvent(events.Change());
+
+        setsChildRelevance.value = '2';
+        setsChildRelevance.dispatchEvent(events.Change());
+
+        expect(child.textContent).to.equal('is relevant');
+
+        setsGroupRelevance.value = '';
+        setsGroupRelevance.dispatchEvent(events.Change());
+        setsGroupRelevance.value = '1';
+        setsGroupRelevance.dispatchEvent(events.Change());
+
+        expect(child.textContent).to.equal('is relevant');
+    });
+
+    // Note (2022/03/09): this behavior is currently inconsistent with JavaRosa
+    it('recalculates when a non-relevant field becomes relevant', () => {
+        const form = loadForm('relevant-calcs.xml', null, {
+            excludeNonRelevant: true,
+        });
+
+        form.init();
+
+        const now = form.model.xml.querySelector('now');
+        const initialValue = new Date(now.textContent).getTime();
+
+        expect(Number.isNaN(initialValue)).not.to.be.true;
+
+        const toggleNow = form.view.html.querySelector(
+            'input[name="/data/toggle-now"]'
+        );
+
+        toggleNow.value = '';
+        toggleNow.dispatchEvent(events.Change());
+        toggleNow.value = '1';
+        toggleNow.dispatchEvent(events.Change());
+
+        const recalculatedValue = new Date(now.textContent).getTime();
+
+        expect(recalculatedValue).to.be.greaterThan(initialValue);
+    });
+
+    it('recalculates when a non-relevant group becomes relevant', () => {
+        const form = loadForm('relevant-calcs.xml', null, {
+            excludeNonRelevant: true,
+        });
+
+        form.init();
+
+        const now = form.model.xml.querySelector('now-grouped now');
+        const initialValue = new Date(now.textContent).getTime();
+
+        expect(Number.isNaN(initialValue)).not.to.be.true;
+
+        const toggleNow = form.view.html.querySelector(
+            'input[name="/data/toggle-now"]'
+        );
+
+        toggleNow.value = '';
+        toggleNow.dispatchEvent(events.Change());
+        toggleNow.value = '1';
+        toggleNow.dispatchEvent(events.Change());
+
+        const recalculatedValue = new Date(now.textContent).getTime();
+
+        expect(recalculatedValue).to.be.greaterThan(initialValue);
     });
 });

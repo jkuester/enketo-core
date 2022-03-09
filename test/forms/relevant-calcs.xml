@@ -1,5 +1,11 @@
 <?xml version="1.0"?>
-<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:odk="http://www.opendatakit.org/xforms" xmlns:orx="http://openrosa.org/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<h:html xmlns="http://www.w3.org/2002/xforms"
+    xmlns:ev="http://www.w3.org/2001/xml-events"
+    xmlns:h="http://www.w3.org/1999/xhtml"
+    xmlns:jr="http://openrosa.org/javarosa"
+    xmlns:odk="http://www.opendatakit.org/xforms"
+    xmlns:orx="http://openrosa.org/xforms"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
     <h:head>
         <h:title>relevant-calcs</h:title>
         <model odk:xforms-version="1.0.0">
@@ -12,6 +18,18 @@
                         <three />
                         <four />
                     </grp>
+                    <is-group-relevant>
+                        <is-child-relevant/>
+                        <is-value-recalculated-while-non-relevant/>
+                        <is-changed-value-preserved-while-non-relevant/>
+                    </is-group-relevant>
+                    <sets-group-relevance/>
+                    <sets-child-relevance/>
+                    <now/>
+                    <toggle-now/>
+                    <now-grouped>
+                        <now/>
+                    </now-grouped>
                     <meta>
                         <instanceID />
                     </meta>
@@ -21,9 +39,17 @@
             <bind nodeset="/data/grp" relevant="string-length( /data/a ) &gt; 0" />
             <bind calculate="concat('o', 'ne')" nodeset="/data/grp/one" readonly="true()" type="string" />
             <bind calculate="concat('tw', 'o')" nodeset="/data/grp/two" type="string" />
-            <bind calculate="if( /data/a  != 'ignore', concat('th', 'ree'), 'ignore')" nodeset="/data/grp/three" readonly="true()" type="string" />
-            <bind calculate="if( /data/a  != 'ignore', concat('fo', 'ur'), 'ignore')" nodeset="/data/grp/four" type="string" />
+            <bind calculate="if( /data/a != 'ignore', concat('th', 'ree'), 'ignore')" nodeset="/data/grp/three" readonly="true()" type="string" />
+            <bind calculate="if( /data/a != 'ignore', concat('fo', 'ur'), 'ignore')" nodeset="/data/grp/four" type="string" />
             <bind jr:preload="uid" nodeset="/data/meta/instanceID" readonly="true()" type="string" />
+            <bind nodeset="/data/is-group-relevant" relevant="/data/sets-group-relevance = '1'" />
+            <bind nodeset="/data/is-group-relevant/is-child-relevant" relevant="/data/sets-child-relevance = '2'" calculate="'is relevant'" />
+            <bind nodeset="/data/is-group-relevant/is-value-recalculated-while-non-relevant" calculate="now()"/>
+            <bind nodeset="/data/is-group-relevant/is-changed-value-preserved-while-non-relevant" calculate="1 + 1"/>
+            <bind nodeset="/data/toggle-now" calculate="1"/>
+            <bind nodeset="/data/now" calculate="now()" relevant="/data/toggle-now = 1"/>
+            <bind nodeset="/data/now-grouped" relevant="/data/toggle-now = 1"/>
+            <bind nodeset="/data/now-grouped/now" calculate="now()"/>
         </model>
     </h:head>
     <h:body>
@@ -38,6 +64,43 @@
             <input ref="/data/grp/three">
                 <label>Calculated:</label>
             </input>
+        </group>
+
+        <input ref="/data/sets-group-relevance">
+            <label>Set to 1 to make Parent group relevant</label>
+        </input>
+        <group ref="/data/is-group-relevant">
+            <label>Parent is relevant</label>
+            <input ref="/data/is-group-relevant/is-child-relevant">
+                <label>Child is relevant</label>
+            </input>
+
+            <input ref="/data/is-group-relevant/is-value-recalculated-while-non-relevant">
+                <label>This should recalculate when it becomes relevant</label>
+            </input>
+
+            <input ref="/data/is-group-relevant/is-changed-value-preserved-while-non-relevant">
+                <label>Change this field's value. It should restore its value if it becomes non-relevant, and then relevant again</label>
+            </input>
+        </group>
+        <input ref="/data/sets-child-relevance">
+            <label>Set to 2 to make Child of Parent group relevant</label>
+        </input>
+
+        <input ref="/data/toggle-now">
+            <label>Set to 1 to show Now</label>
+        </input>
+
+        <input ref="/data/now">
+            <label>Now</label>
+        </input>
+
+        <group ref="/data/now-grouped">
+            <repeat ref="/data/now-grouped">
+                <input ref="/data/now-grouped/now">
+                    <label>Now</label>
+                </input>
+            </repeat>
         </group>
     </h:body>
 </h:html>

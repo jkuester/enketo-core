@@ -7,11 +7,6 @@
 import events from './event';
 import { closestAncestorUntil, getChild, getChildren } from './dom-utils';
 
-/**
- * @type {WeakMap<Element, Array<[Element, any]>>}
- */
-const clearedValues = new WeakMap();
-
 export default {
     /**
      * @param {UpdatedDataNodes} [updated] - The object containing info on updated data nodes.
@@ -226,6 +221,73 @@ export default {
     },
 
     /**
+     * @typedef ToggleNonRelevantModleNodesOptions
+     * @property {boolean} isRelevant
+     * @property {number} [index]
+     */
+
+    /**
+     * @param {Element} branchNode
+     * @param {string} path
+     * @param {ToggleNonRelevantModleNodesOptions} options
+     */
+    toggleNonRelevantModelNodes(branchNode, path, options) {
+        if (this.form.options.excludeNonRelevant) {
+            const { index = this.form.input.getIndex(branchNode), isRelevant } =
+                options;
+            const modelNode = this.form.model.evaluate(
+                path,
+                'node',
+                null,
+                index
+            );
+
+            /** @type {Element[]} */
+            const modelNodes = [modelNode, ...modelNode.querySelectorAll('*')];
+
+            for (const node of modelNodes) {
+                const value = isRelevant
+                    ? node.getAttributeNS('enk', 'non-relevant-value')
+                    : node.textContent;
+
+                if (node.children.length === 0) {
+                    if (isRelevant) {
+                        node.textContent = value;
+                    } else {
+                        node.setAttributeNS('enk', 'non-relevant-value', value);
+                        node.textContent = '';
+                    }
+                }
+
+                if (isRelevant) {
+                    node.removeAttributeNS('enk', 'non-relevant');
+                    node.removeAttributeNS('enk', 'non-relevant-value');
+                } else {
+                    node.setAttributeNS('enk', 'non-relevant', 'true');
+                }
+            }
+
+            branchNode.dispatchEvent(events.Change());
+            branchNode.dispatchEvent(events.InputUpdate());
+        }
+    },
+
+    /**
+     * @param {Element} element
+     */
+    isRelevant(element) {
+        return element.getAttributeNS('enk', 'non-relevant') === 'true';
+    },
+
+    /**
+     * @param {Element} element
+     * @param {string} value
+     */
+    setNonRelevantValue(element, value) {
+        element.setAttributeNS('enk', 'non-relevant-value', value);
+    },
+
+    /**
      * Enables and reveals a branch node/group
      *
      * @param {Element} branchNode - The Element to reveal and enable
@@ -236,18 +298,11 @@ export default {
         let change = false;
 
         if (!this.selfRelevant(branchNode)) {
-            const cleared = clearedValues.get(branchNode);
-
-            if (cleared != null) {
-                cleared.forEach(([element, value]) => {
-                    this.form.input.setVal(element, value, events.Change());
-                });
-
-                clearedValues.delete(branchNode);
-            }
-
             change = true;
             branchNode.classList.remove('disabled', 'pre-init');
+            this.toggleNonRelevantModelNodes(branchNode, path, {
+                isRelevant: true,
+            });
             // Update calculated items, both individual question or descendants of group
             this.form.calc.update({
                 relevantPath: path,
@@ -284,16 +339,13 @@ export default {
         ) {
             changed = true;
 
-            const { clearNonRelevant } = this.form.options;
-
-            if (clearNonRelevant || forceClearNonRelevant) {
-                const cleared = this.clear(branchNode, path);
-
-                if (clearNonRelevant) {
-                    clearedValues.set(branchNode, cleared);
-                }
+            if (forceClearNonRelevant) {
+                this.clear(branchNode, path);
             }
 
+            this.toggleNonRelevantModelNodes(branchNode, path, {
+                isRelevant: false,
+            });
             this.deactivate(branchNode);
         }
 
@@ -309,7 +361,7 @@ export default {
     clear(branchNode, path) {
         // A change event ensures the model is updated
         // An inputupdate event is required to update widgets
-        const cleared = this.form.input.clear(
+        this.form.input.clear(
             branchNode,
             events.Change(),
             events.InputUpdate()
@@ -326,8 +378,6 @@ export default {
                 true
             );
         }
-
-        return cleared;
     },
     /**
      * @param {Element} branchNode - branch node

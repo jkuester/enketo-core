@@ -119,12 +119,23 @@ Nodeset.prototype.setVal = function (newVals, xmlDataType) {
     }
 
     newVal = this.convert(newVal, xmlDataType);
+
+    const strVal = String(newVal);
     const targets = this.getElements();
 
-    if (targets.length === 1 && newVal.toString() !== curVal.toString()) {
+    if (targets.length === 1 && strVal !== curVal.toString()) {
         const target = targets[0];
-        // first change the value so that it can be evaluated in XPath (validated)
-        target.textContent = newVal.toString();
+        // First change the value so that it can be evaluated in XPath (validated).
+        //
+        // Note (2022/03/09): `this.form` is currently undefined during `FormModel#init`,
+        // in which case `setVal` is being used for metadata elements which should always
+        // be relevant.
+        if (this.form == null || this.form.relevant.isRelevant(target)) {
+            target.textContent = strVal;
+        } else {
+            this.form.relevant.setNonRelevantValue(target, strVal);
+        }
+
         // then return validation result
         updated = this.getClosestRepeat();
         updated.nodes = [target.nodeName];
