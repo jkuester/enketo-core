@@ -4,8 +4,23 @@
  * @description Updates branches
  */
 
+import config from 'enketo/config';
 import events from './event';
 import { closestAncestorUntil, getChild, getChildren } from './dom-utils';
+
+/**
+ * @param {Element} node
+ */
+export const isNodeRelevant = (node) =>
+    node.getAttribute('non-relevant') !== 'true';
+
+/**
+ * @param {Element} element
+ * @param {string} value
+ */
+export const setNonRelevantValue = (element, value) => {
+    element.setAttribute('non-relevant-value', value);
+};
 
 export default {
     /**
@@ -232,7 +247,7 @@ export default {
      * @param {ToggleNonRelevantModleNodesOptions} options
      */
     toggleNonRelevantModelNodes(branchNode, path, options) {
-        if (this.form.options.excludeNonRelevant) {
+        if (config.excludeNonRelevant) {
             const { index = this.form.input.getIndex(branchNode), isRelevant } =
                 options;
             const modelNode = this.form.model.evaluate(
@@ -246,45 +261,38 @@ export default {
             const modelNodes = [modelNode, ...modelNode.querySelectorAll('*')];
 
             for (const node of modelNodes) {
+                if (isNodeRelevant(node) === isRelevant) {
+                    continue;
+                }
+
                 const value = isRelevant
-                    ? node.getAttributeNS('enk', 'non-relevant-value')
+                    ? node.getAttribute('non-relevant-value')
                     : node.textContent;
 
                 if (node.children.length === 0) {
                     if (isRelevant) {
                         node.textContent = value;
                     } else {
-                        node.setAttributeNS('enk', 'non-relevant-value', value);
+                        node.setAttribute('non-relevant-value', value);
                         node.textContent = '';
                     }
                 }
 
                 if (isRelevant) {
-                    node.removeAttributeNS('enk', 'non-relevant');
-                    node.removeAttributeNS('enk', 'non-relevant-value');
+                    node.removeAttribute('non-relevant');
+                    node.removeAttribute('non-relevant-value');
                 } else {
-                    node.setAttributeNS('enk', 'non-relevant', 'true');
+                    node.setAttribute('non-relevant', 'true');
                 }
             }
 
             branchNode.dispatchEvent(events.Change());
             branchNode.dispatchEvent(events.InputUpdate());
+
+            this.form.calc.update({
+                relevantPath: path,
+            });
         }
-    },
-
-    /**
-     * @param {Element} element
-     */
-    isRelevant(element) {
-        return element.getAttributeNS('enk', 'non-relevant') === 'true';
-    },
-
-    /**
-     * @param {Element} element
-     * @param {string} value
-     */
-    setNonRelevantValue(element, value) {
-        element.setAttributeNS('enk', 'non-relevant-value', value);
     },
 
     /**

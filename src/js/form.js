@@ -36,9 +36,6 @@ import './extend';
 
 /**
  * @typedef FormOptions
- * @property {boolean} [excludeNonRelevant] If true, a field's value is cleared
- *   if it becomes non-relevant, and its value is restored if it becomes
- *   relevant again.
  * @property {string} [language] Overrides the default languages rules of the XForm itself. Pass any valid and present-in-the-form IANA subtag string, e.g. `ar`.
  * @property {boolean} [printRelevantOnly] If `printRelevantOnly` is set to `true`
  *   or not set at all, printing the form only includes what is visible, ie. all the

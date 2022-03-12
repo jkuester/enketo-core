@@ -2,6 +2,7 @@ import $ from 'jquery';
 import types from './types';
 import event from './event';
 import { getXPath } from './dom-utils';
+import { isNodeRelevant, setNonRelevantValue } from './relevant';
 
 /**
  * @typedef NodesetFilter
@@ -126,14 +127,10 @@ Nodeset.prototype.setVal = function (newVals, xmlDataType) {
     if (targets.length === 1 && strVal !== curVal.toString()) {
         const target = targets[0];
         // First change the value so that it can be evaluated in XPath (validated).
-        //
-        // Note (2022/03/09): `this.form` is currently undefined during `FormModel#init`,
-        // in which case `setVal` is being used for metadata elements which should always
-        // be relevant.
-        if (this.form == null || this.form.relevant.isRelevant(target)) {
+        if (isNodeRelevant(target)) {
             target.textContent = strVal;
         } else {
-            this.form.relevant.setNonRelevantValue(target, strVal);
+            setNonRelevantValue(target, strVal);
         }
 
         // then return validation result

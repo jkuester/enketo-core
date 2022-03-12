@@ -23,6 +23,7 @@
                         <is-value-recalculated-while-non-relevant/>
                         <is-changed-value-preserved-while-non-relevant/>
                     </is-group-relevant>
+                    <computed-by-child/>
                     <sets-group-relevance/>
                     <sets-child-relevance/>
                     <now/>
@@ -35,12 +36,12 @@
                     </meta>
                 </data>
             </instance>
-            <bind nodeset="/data/a" type="string" />
+            <!-- <bind nodeset="/data/a" type="string" />
             <bind nodeset="/data/grp" relevant="string-length( /data/a ) &gt; 0" />
             <bind calculate="concat('o', 'ne')" nodeset="/data/grp/one" readonly="true()" type="string" />
             <bind calculate="concat('tw', 'o')" nodeset="/data/grp/two" type="string" />
             <bind calculate="if( /data/a != 'ignore', concat('th', 'ree'), 'ignore')" nodeset="/data/grp/three" readonly="true()" type="string" />
-            <bind calculate="if( /data/a != 'ignore', concat('fo', 'ur'), 'ignore')" nodeset="/data/grp/four" type="string" />
+            <bind calculate="if( /data/a != 'ignore', concat('fo', 'ur'), 'ignore')" nodeset="/data/grp/four" type="string" /> -->
             <bind jr:preload="uid" nodeset="/data/meta/instanceID" readonly="true()" type="string" />
             <bind nodeset="/data/is-group-relevant" relevant="/data/sets-group-relevance = '1'" />
             <bind nodeset="/data/is-group-relevant/is-child-relevant" relevant="/data/sets-child-relevance = '2'" calculate="'is relevant'" />
@@ -50,6 +51,7 @@
             <bind nodeset="/data/now" calculate="now()" relevant="/data/toggle-now = 1"/>
             <bind nodeset="/data/now-grouped" relevant="/data/toggle-now = 1"/>
             <bind nodeset="/data/now-grouped/now" calculate="now()"/>
+            <bind nodeset="/data/computed-by-child" calculate="/data/is-group-relevant/is-child-relevant" />
         </model>
     </h:head>
     <h:body>
@@ -85,6 +87,9 @@
         </group>
         <input ref="/data/sets-child-relevance">
             <label>Set to 2 to make Child of Parent group relevant</label>
+        </input>
+        <input ref="/data/computed-by-child">
+            <label>Computed by child</label>
         </input>
 
         <input ref="/data/toggle-now">

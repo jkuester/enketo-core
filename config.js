@@ -1,4 +1,5 @@
 export default {
+    excludeNonRelevant: false,
     maps: [
         {
             tiles: ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'],

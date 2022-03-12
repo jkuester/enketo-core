@@ -1,3 +1,4 @@
+import config from 'enketo/config';
 import loadForm from '../helpers/load-form';
 import dialog from '../../src/js/fake-dialog';
 import events from '../../src/js/event';
@@ -140,172 +141,208 @@ describe('calculate functionality', () => {
         expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
     });
 
-    it('recalculates non-relevant values when they are excluded from calculations', () => {
-        const form = loadForm('relevant-calcs.xml', null, {
-            excludeNonRelevant: true,
+    describe('Excluding non-relevant nodes', () => {
+        beforeEach(() => {
+            sandbox.stub(config, 'excludeNonRelevant').get(() => true);
         });
 
-        form.init();
+        it('recalculates non-relevant values when they are excluded from calculations', () => {
+            const form = loadForm('relevant-calcs.xml', null);
 
-        const grp = form.model.xml.querySelector('grp');
+            form.init();
 
-        expect(grp.textContent.replace(/\s/g, '')).to.equal('');
+            const grp = form.model.xml.querySelector('grp');
 
-        const a = form.view.html.querySelector('input[name="/data/a"]');
+            expect(grp.textContent.replace(/\s/g, '')).to.equal('');
 
-        a.value = 'a';
-        a.dispatchEvent(events.Change());
+            const a = form.view.html.querySelector('input[name="/data/a"]');
 
-        expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
+            a.value = 'a';
+            a.dispatchEvent(events.Change());
 
-        a.value = '';
-        a.dispatchEvent(events.Change());
+            expect(grp.textContent.replace(/\s/g, '')).to.equal(
+                'onetwothreefour'
+            );
 
-        expect(grp.textContent.replace(/\s/g, '')).to.equal('');
-    });
+            a.value = '';
+            a.dispatchEvent(events.Change());
 
-    it('recalculates relevant values when they are restored', () => {
-        const form = loadForm('relevant-calcs.xml', null, {
-            excludeNonRelevant: true,
+            expect(grp.textContent.replace(/\s/g, '')).to.equal('');
         });
 
-        form.init();
+        it('recalculates relevant values when they are restored', () => {
+            const form = loadForm('relevant-calcs.xml', null);
 
-        const grp = form.model.xml.querySelector('grp');
+            form.init();
 
-        expect(grp.textContent.replace(/\s/g, '')).to.equal('');
+            const grp = form.model.xml.querySelector('grp');
 
-        const a = form.view.html.querySelector('input[name="/data/a"]');
+            expect(grp.textContent.replace(/\s/g, '')).to.equal('');
 
-        a.value = 'a';
-        a.dispatchEvent(events.Change());
+            const a = form.view.html.querySelector('input[name="/data/a"]');
 
-        expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
+            a.value = 'a';
+            a.dispatchEvent(events.Change());
 
-        a.value = '';
-        a.dispatchEvent(events.Change());
-        a.value = 'a';
-        a.dispatchEvent(events.Change());
+            expect(grp.textContent.replace(/\s/g, '')).to.equal(
+                'onetwothreefour'
+            );
 
-        expect(grp.textContent.replace(/\s/g, '')).to.equal('onetwothreefour');
-    });
+            a.value = '';
+            a.dispatchEvent(events.Change());
+            a.value = 'a';
+            a.dispatchEvent(events.Change());
 
-    it('excludes children of non-relevant parents from calculations', () => {
-        const form = loadForm('relevant-calcs.xml', null, {
-            excludeNonRelevant: true,
+            expect(grp.textContent.replace(/\s/g, '')).to.equal(
+                'onetwothreefour'
+            );
         });
 
-        form.init();
+        it('excludes children of non-relevant parents from calculations', () => {
+            const form = loadForm('relevant-calcs.xml', null);
 
-        const child = form.model.xml.querySelector('is-child-relevant');
+            form.init();
 
-        expect(child.textContent).to.equal('');
+            const child = form.model.xml.querySelector('is-child-relevant');
 
-        const setsGroupRelevance = form.view.html.querySelector(
-            'input[name="/data/sets-group-relevance"]'
-        );
-        const setsChildRelevance = form.view.html.querySelector(
-            'input[name="/data/sets-child-relevance"]'
-        );
+            expect(child.textContent).to.equal('');
 
-        setsGroupRelevance.value = '1';
-        setsGroupRelevance.dispatchEvent(events.Change());
+            const setsGroupRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-group-relevance"]'
+            );
+            const setsChildRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-child-relevance"]'
+            );
 
-        setsChildRelevance.value = '2';
-        setsChildRelevance.dispatchEvent(events.Change());
+            setsGroupRelevance.value = '1';
+            setsGroupRelevance.dispatchEvent(events.Change());
 
-        expect(child.textContent).to.equal('is relevant');
+            setsChildRelevance.value = '2';
+            setsChildRelevance.dispatchEvent(events.Change());
 
-        setsGroupRelevance.value = '';
-        setsGroupRelevance.dispatchEvent(events.Change());
+            expect(child.textContent).to.equal('is relevant');
 
-        expect(child.textContent).to.equal('');
-    });
+            setsGroupRelevance.value = '';
+            setsGroupRelevance.dispatchEvent(events.Change());
 
-    it('restores relevance of calculations of children of non-relevant when their parents become relevant', () => {
-        const form = loadForm('relevant-calcs.xml', null, {
-            excludeNonRelevant: true,
+            expect(child.textContent).to.equal('');
         });
 
-        form.init();
+        it('restores relevance of calculations of children of non-relevant when their parents become relevant', () => {
+            const form = loadForm('relevant-calcs.xml', null);
 
-        const child = form.model.xml.querySelector('is-child-relevant');
+            form.init();
 
-        expect(child.textContent).to.equal('');
+            const child = form.model.xml.querySelector('is-child-relevant');
 
-        const setsGroupRelevance = form.view.html.querySelector(
-            'input[name="/data/sets-group-relevance"]'
-        );
-        const setsChildRelevance = form.view.html.querySelector(
-            'input[name="/data/sets-child-relevance"]'
-        );
+            expect(child.textContent).to.equal('');
 
-        setsGroupRelevance.value = '1';
-        setsGroupRelevance.dispatchEvent(events.Change());
+            const setsGroupRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-group-relevance"]'
+            );
+            const setsChildRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-child-relevance"]'
+            );
 
-        setsChildRelevance.value = '2';
-        setsChildRelevance.dispatchEvent(events.Change());
+            setsGroupRelevance.value = '1';
+            setsGroupRelevance.dispatchEvent(events.Change());
 
-        expect(child.textContent).to.equal('is relevant');
+            setsChildRelevance.value = '2';
+            setsChildRelevance.dispatchEvent(events.Change());
 
-        setsGroupRelevance.value = '';
-        setsGroupRelevance.dispatchEvent(events.Change());
-        setsGroupRelevance.value = '1';
-        setsGroupRelevance.dispatchEvent(events.Change());
+            expect(child.textContent).to.equal('is relevant');
 
-        expect(child.textContent).to.equal('is relevant');
-    });
+            setsGroupRelevance.value = '';
+            setsGroupRelevance.dispatchEvent(events.Change());
+            setsGroupRelevance.value = '1';
+            setsGroupRelevance.dispatchEvent(events.Change());
 
-    // Note (2022/03/09): this behavior is currently inconsistent with JavaRosa
-    it('recalculates when a non-relevant field becomes relevant', () => {
-        const form = loadForm('relevant-calcs.xml', null, {
-            excludeNonRelevant: true,
+            expect(child.textContent).to.equal('is relevant');
         });
 
-        form.init();
+        // Note (2022/03/09): this behavior is currently inconsistent with JavaRosa
+        it('recalculates when a non-relevant field becomes relevant', () => {
+            const form = loadForm('relevant-calcs.xml', null);
 
-        const now = form.model.xml.querySelector('now');
-        const initialValue = new Date(now.textContent).getTime();
+            form.init();
 
-        expect(Number.isNaN(initialValue)).not.to.be.true;
+            const now = form.model.xml.querySelector('now');
+            const initialValue = new Date(now.textContent).getTime();
 
-        const toggleNow = form.view.html.querySelector(
-            'input[name="/data/toggle-now"]'
-        );
+            expect(Number.isNaN(initialValue)).not.to.be.true;
 
-        toggleNow.value = '';
-        toggleNow.dispatchEvent(events.Change());
-        toggleNow.value = '1';
-        toggleNow.dispatchEvent(events.Change());
+            const toggleNow = form.view.html.querySelector(
+                'input[name="/data/toggle-now"]'
+            );
 
-        const recalculatedValue = new Date(now.textContent).getTime();
+            toggleNow.value = '';
+            toggleNow.dispatchEvent(events.Change());
+            toggleNow.value = '1';
+            toggleNow.dispatchEvent(events.Change());
 
-        expect(recalculatedValue).to.be.greaterThan(initialValue);
-    });
+            const recalculatedValue = new Date(now.textContent).getTime();
 
-    it('recalculates when a non-relevant group becomes relevant', () => {
-        const form = loadForm('relevant-calcs.xml', null, {
-            excludeNonRelevant: true,
+            expect(recalculatedValue).to.be.greaterThan(initialValue);
         });
 
-        form.init();
+        it('recalculates when a non-relevant group becomes relevant', () => {
+            const form = loadForm('relevant-calcs.xml', null);
 
-        const now = form.model.xml.querySelector('now-grouped now');
-        const initialValue = new Date(now.textContent).getTime();
+            form.init();
 
-        expect(Number.isNaN(initialValue)).not.to.be.true;
+            const now = form.model.xml.querySelector('now-grouped now');
+            const initialValue = new Date(now.textContent).getTime();
 
-        const toggleNow = form.view.html.querySelector(
-            'input[name="/data/toggle-now"]'
-        );
+            expect(Number.isNaN(initialValue)).not.to.be.true;
 
-        toggleNow.value = '';
-        toggleNow.dispatchEvent(events.Change());
-        toggleNow.value = '1';
-        toggleNow.dispatchEvent(events.Change());
+            const toggleNow = form.view.html.querySelector(
+                'input[name="/data/toggle-now"]'
+            );
 
-        const recalculatedValue = new Date(now.textContent).getTime();
+            toggleNow.value = '';
+            toggleNow.dispatchEvent(events.Change());
+            toggleNow.value = '1';
+            toggleNow.dispatchEvent(events.Change());
 
-        expect(recalculatedValue).to.be.greaterThan(initialValue);
+            const recalculatedValue = new Date(now.textContent).getTime();
+
+            expect(recalculatedValue).to.be.greaterThan(initialValue);
+        });
+
+        it('recalculates becoming relevant after becoming non-relevant', () => {
+            const form = loadForm('relevant-calcs.xml', null);
+
+            form.init();
+
+            const computedByChild =
+                form.model.xml.querySelector('computed-by-child');
+            const initialValue = computedByChild.textContent;
+
+            expect(initialValue).to.equal('');
+
+            const setsGroupRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-group-relevance"]'
+            );
+            const setsChildRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-child-relevance"]'
+            );
+
+            setsGroupRelevance.value = '1';
+            setsGroupRelevance.dispatchEvent(events.Change());
+            setsChildRelevance.value = '2';
+            setsChildRelevance.dispatchEvent(events.Change());
+
+            expect(computedByChild.textContent).to.equal('is relevant');
+
+            setsChildRelevance.value = '';
+            setsChildRelevance.dispatchEvent(events.Change());
+
+            expect(computedByChild.textContent).to.equal('');
+
+            setsChildRelevance.value = '2';
+            setsChildRelevance.dispatchEvent(events.Change());
+
+            expect(computedByChild.textContent).to.equal('is relevant');
+        });
     });
 });
