@@ -36,12 +36,12 @@
                     </meta>
                 </data>
             </instance>
-            <!-- <bind nodeset="/data/a" type="string" />
+            <bind nodeset="/data/a" type="string" />
             <bind nodeset="/data/grp" relevant="string-length( /data/a ) &gt; 0" />
             <bind calculate="concat('o', 'ne')" nodeset="/data/grp/one" readonly="true()" type="string" />
             <bind calculate="concat('tw', 'o')" nodeset="/data/grp/two" type="string" />
             <bind calculate="if( /data/a != 'ignore', concat('th', 'ree'), 'ignore')" nodeset="/data/grp/three" readonly="true()" type="string" />
-            <bind calculate="if( /data/a != 'ignore', concat('fo', 'ur'), 'ignore')" nodeset="/data/grp/four" type="string" /> -->
+            <bind calculate="if( /data/a != 'ignore', concat('fo', 'ur'), 'ignore')" nodeset="/data/grp/four" type="string" />
             <bind jr:preload="uid" nodeset="/data/meta/instanceID" readonly="true()" type="string" />
             <bind nodeset="/data/is-group-relevant" relevant="/data/sets-group-relevance = '1'" />
             <bind nodeset="/data/is-group-relevant/is-child-relevant" relevant="/data/sets-child-relevance = '2'" calculate="'is relevant'" />
