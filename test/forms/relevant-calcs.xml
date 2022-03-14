@@ -24,6 +24,8 @@
                         <is-changed-value-preserved-while-non-relevant/>
                     </is-group-relevant>
                     <computed-by-child/>
+                    <assign-any-value/>
+                    <sets-assign-any-value-relevance/>
                     <sets-group-relevance/>
                     <sets-child-relevance/>
                     <now/>
@@ -52,6 +54,8 @@
             <bind nodeset="/data/now-grouped" relevant="/data/toggle-now = 1"/>
             <bind nodeset="/data/now-grouped/now" calculate="now()"/>
             <bind nodeset="/data/computed-by-child" calculate="/data/is-group-relevant/is-child-relevant" />
+            <bind nodeset="/data/assign-any-value" relevant="/data/sets-assign-any-value-relevance = '1'"/>
+            <bind nodeset="/data/sets-assign-any-value-relevance" type="string"/>
         </model>
     </h:head>
     <h:body>
@@ -107,5 +111,12 @@
                 </input>
             </repeat>
         </group>
+
+        <input ref="/data/sets-assign-any-value-relevance">
+            <label>Set to 1 to show arbitrary string input (not calculated)</label>
+        </input>
+        <input ref="/data/assign-any-value">
+            <label>Assign any value</label>
+        </input>
     </h:body>
 </h:html>

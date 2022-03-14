@@ -260,29 +260,49 @@ export default {
             /** @type {Element[]} */
             const modelNodes = [modelNode, ...modelNode.querySelectorAll('*')];
 
+            /** @type {Map<Element, string>} */
+            const unassignedNodeValues = new Map();
+
+            const observer = new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    if (mutation.type === 'childList') {
+                        for (const addedNode of mutation.addedNodes) {
+                            unassignedNodeValues.delete(addedNode.target);
+                        }
+                    }
+                }
+            });
+
+            observer.observe(this.form.model.xml.documentElement, {
+                childList: true,
+                subtree: true,
+            });
+
             for (const node of modelNodes) {
                 if (isNodeRelevant(node) === isRelevant) {
                     continue;
                 }
 
-                const value = isRelevant
-                    ? node.getAttribute('non-relevant-value')
-                    : node.textContent;
-
-                if (node.children.length === 0) {
-                    if (isRelevant) {
-                        node.textContent = value;
-                    } else {
-                        node.setAttribute('non-relevant-value', value);
-                        node.textContent = '';
-                    }
-                }
-
                 if (isRelevant) {
+                    const value = node.getAttribute('non-relevant-value');
+
+                    if (value != null) {
+                        unassignedNodeValues.set(node, value);
+                    }
+
                     node.removeAttribute('non-relevant');
                     node.removeAttribute('non-relevant-value');
                 } else {
                     node.setAttribute('non-relevant', 'true');
+
+                    if (node.children.length === 0) {
+                        const value = isRelevant
+                            ? node.getAttribute('non-relevant-value')
+                            : node.textContent;
+
+                        node.setAttribute('non-relevant-value', value);
+                        node.textContent = '';
+                    }
                 }
             }
 
@@ -292,6 +312,19 @@ export default {
             this.form.calc.update({
                 relevantPath: path,
             });
+
+            observer.disconnect();
+
+            if (isRelevant) {
+                for (const [node, value] of unassignedNodeValues.entries()) {
+                    const currentValue = node.textContent;
+
+                    if (value !== currentValue) {
+                        node.textContent = value;
+                        node.dispatchEvent(events.XFormsValueChanged());
+                    }
+                }
+            }
         }
     },
 

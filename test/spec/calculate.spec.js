@@ -344,5 +344,43 @@ describe('calculate functionality', () => {
 
             expect(computedByChild.textContent).to.equal('is relevant');
         });
+
+        it('restores values set arbitrarily when a node becomes relevant', () => {
+            const form = loadForm('relevant-calcs.xml', null);
+
+            form.init();
+
+            const assignAnyValue =
+                form.model.xml.querySelector('assign-any-value');
+            const initialValue = assignAnyValue.textContent;
+
+            expect(initialValue).to.equal('');
+
+            const setsRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-assign-any-value-relevance"]'
+            );
+
+            setsRelevance.value = '1';
+            setsRelevance.dispatchEvent(events.Change());
+
+            const assignAnyValueInput = form.view.html.querySelector(
+                'input[name="/data/assign-any-value"]'
+            );
+
+            assignAnyValueInput.value = 'any value';
+            assignAnyValueInput.dispatchEvent(events.Change());
+
+            expect(assignAnyValue.textContent).to.equal('any value');
+
+            setsRelevance.value = '';
+            setsRelevance.dispatchEvent(events.Change());
+
+            expect(assignAnyValue.textContent).to.equal('');
+
+            setsRelevance.value = '1';
+            setsRelevance.dispatchEvent(events.Change());
+
+            expect(assignAnyValue.textContent).to.equal('any value');
+        });
     });
 });
