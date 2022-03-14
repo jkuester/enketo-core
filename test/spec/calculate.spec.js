@@ -7,10 +7,19 @@ describe('calculate functionality', () => {
     /** @type {import('sinon').SinonSandbox} */
     let sandbox;
 
+    /** @type {boolean} */
+    let excludeNonRelevant;
+
     beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         sandbox.stub(dialog, 'confirm').resolves(true);
+
+        excludeNonRelevant = false;
+
+        sandbox
+            .stub(config, 'excludeNonRelevant')
+            .get(() => excludeNonRelevant);
     });
 
     afterEach(() => {
@@ -143,7 +152,7 @@ describe('calculate functionality', () => {
 
     describe('Excluding non-relevant nodes', () => {
         beforeEach(() => {
-            sandbox.stub(config, 'excludeNonRelevant').get(() => true);
+            excludeNonRelevant = true;
         });
 
         it('recalculates non-relevant values when they are excluded from calculations', () => {
@@ -345,7 +354,7 @@ describe('calculate functionality', () => {
             expect(computedByChild.textContent).to.equal('is relevant');
         });
 
-        it('restores values set arbitrarily when a node becomes relevant', () => {
+        it('restores values set arbitrarily when a node becomes relevant', async () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
@@ -381,6 +390,50 @@ describe('calculate functionality', () => {
             setsRelevance.dispatchEvent(events.Change());
 
             expect(assignAnyValue.textContent).to.equal('any value');
+        });
+
+        it('updates recalculated values in the view', async () => {
+            const form = loadForm('relevant-calcs.xml', null);
+
+            form.init();
+
+            const assignAnyValue =
+                form.model.xml.querySelector('assign-any-value');
+            const initialValue = assignAnyValue.textContent;
+
+            expect(initialValue).to.equal('');
+
+            const setsRelevance = form.view.html.querySelector(
+                'input[name="/data/sets-assign-any-value-relevance"]'
+            );
+
+            const calculated = form.view.html.querySelector(
+                'input[name="/data/calc-by-assign-any-value"]'
+            );
+
+            expect(calculated.value).to.equal('');
+
+            setsRelevance.value = '1';
+            setsRelevance.dispatchEvent(events.Change());
+
+            const assignAnyValueInput = form.view.html.querySelector(
+                'input[name="/data/assign-any-value"]'
+            );
+
+            assignAnyValueInput.value = 'any value';
+            assignAnyValueInput.dispatchEvent(events.Change());
+
+            expect(calculated.value).to.equal('any value');
+
+            setsRelevance.value = '';
+            setsRelevance.dispatchEvent(events.Change());
+
+            expect(calculated.value).to.equal('');
+
+            setsRelevance.value = '1';
+            setsRelevance.dispatchEvent(events.Change());
+
+            expect(calculated.value).to.equal('any value');
         });
     });
 });

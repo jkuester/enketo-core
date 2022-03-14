@@ -22,6 +22,12 @@ export const setNonRelevantValue = (element, value) => {
     element.setAttribute('non-relevant-value', value);
 };
 
+/**
+ * @param {Element} element
+ */
+export const getNonRelevantValue = (element) =>
+    element.textContent ?? element.getAttribute('non-relevant-value');
+
 export default {
     /**
      * @param {UpdatedDataNodes} [updated] - The object containing info on updated data nodes.
@@ -257,6 +263,10 @@ export default {
                 index
             );
 
+            if (isNodeRelevant(modelNode) === isRelevant) {
+                return;
+            }
+
             /** @type {Element[]} */
             const modelNodes = [modelNode, ...modelNode.querySelectorAll('*')];
 
@@ -309,9 +319,7 @@ export default {
             branchNode.dispatchEvent(events.Change());
             branchNode.dispatchEvent(events.InputUpdate());
 
-            this.form.calc.update({
-                relevantPath: path,
-            });
+            this.form.calc.update();
 
             observer.disconnect();
 
@@ -324,6 +332,8 @@ export default {
                         node.dispatchEvent(events.XFormsValueChanged());
                     }
                 }
+
+                this.form.calc.update();
             }
         }
     },
