@@ -26,6 +26,64 @@ describe('calculate functionality', () => {
         sandbox.restore();
     });
 
+    it('relevant calculations cascade from a view change', () => {
+        const form = loadForm('calcs-cascade.xml');
+
+        form.init();
+
+        const firstInput = form.view.html.querySelector(
+            'input[name="/calcs-cascade/first"]'
+        );
+        const secondInput = form.view.html.querySelector(
+            'input[name="/calcs-cascade/second"]'
+        );
+        const thirdInput = form.view.html.querySelector(
+            'input[name="/calcs-cascade/third"]'
+        );
+        const firstModel = form.model.xml.querySelector('first');
+        const secondModel = form.model.xml.querySelector('second');
+        const thirdModel = form.model.xml.querySelector('third');
+
+        firstInput.value = 1;
+        firstInput.dispatchEvent(events.Change());
+
+        expect(firstInput.value).to.equal('1');
+        expect(secondInput.value).to.equal('3');
+        expect(thirdInput.value).to.equal('6');
+        expect(firstModel.textContent).to.equal('1');
+        expect(secondModel.textContent).to.equal('3');
+        expect(thirdModel.textContent).to.equal('6');
+    });
+
+    it('relevant calculations cascade from a model change', () => {
+        const form = loadForm('calcs-cascade.xml');
+
+        form.init();
+
+        const firstInput = form.view.html.querySelector(
+            'input[name="/calcs-cascade/first"]'
+        );
+        const secondInput = form.view.html.querySelector(
+            'input[name="/calcs-cascade/second"]'
+        );
+        const thirdInput = form.view.html.querySelector(
+            'input[name="/calcs-cascade/third"]'
+        );
+        const firstModel = form.model.xml.querySelector('first');
+        const secondModel = form.model.xml.querySelector('second');
+        const thirdModel = form.model.xml.querySelector('third');
+
+        firstInput.value = '1';
+        form.model.node(firstInput.name).setVal('1');
+
+        expect(firstInput.value).to.equal('1');
+        expect(secondInput.value).to.equal('3');
+        expect(thirdInput.value).to.equal('6');
+        expect(firstModel.textContent).to.equal('1');
+        expect(secondModel.textContent).to.equal('3');
+        expect(thirdModel.textContent).to.equal('6');
+    });
+
     it('updates inside multiple repeats when repeats become relevant', () => {
         const form = loadForm('repeat-relevant-calculate.xml');
         form.init();
@@ -151,8 +209,22 @@ describe('calculate functionality', () => {
     });
 
     describe('Excluding non-relevant nodes', () => {
+        /** @type {SinonFakeTimers} */
+        let timers;
+
         beforeEach(() => {
             excludeNonRelevant = true;
+
+            timers = sandbox.useFakeTimers();
+        });
+
+        afterEach(() => {
+            timers.runAll();
+
+            timers.clearTimeout();
+            timers.clearInterval();
+            timers.restore();
+            sandbox.restore();
         });
 
         it('recalculates non-relevant values when they are excluded from calculations', () => {
@@ -162,6 +234,8 @@ describe('calculate functionality', () => {
 
             const grp = form.model.xml.querySelector('grp');
 
+            timers.runAll();
+
             expect(grp.textContent.replace(/\s/g, '')).to.equal('');
 
             const a = form.view.html.querySelector('input[name="/data/a"]');
@@ -169,12 +243,16 @@ describe('calculate functionality', () => {
             a.value = 'a';
             a.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(grp.textContent.replace(/\s/g, '')).to.equal(
                 'onetwothreefour'
             );
 
             a.value = '';
             a.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(grp.textContent.replace(/\s/g, '')).to.equal('');
         });
@@ -186,6 +264,8 @@ describe('calculate functionality', () => {
 
             const grp = form.model.xml.querySelector('grp');
 
+            timers.runAll();
+
             expect(grp.textContent.replace(/\s/g, '')).to.equal('');
 
             const a = form.view.html.querySelector('input[name="/data/a"]');
@@ -193,14 +273,21 @@ describe('calculate functionality', () => {
             a.value = 'a';
             a.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(grp.textContent.replace(/\s/g, '')).to.equal(
                 'onetwothreefour'
             );
 
             a.value = '';
             a.dispatchEvent(events.Change());
+
+            timers.runAll();
+
             a.value = 'a';
             a.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(grp.textContent.replace(/\s/g, '')).to.equal(
                 'onetwothreefour'
@@ -214,6 +301,8 @@ describe('calculate functionality', () => {
 
             const child = form.model.xml.querySelector('is-child-relevant');
 
+            timers.runAll();
+
             expect(child.textContent).to.equal('');
 
             const setsGroupRelevance = form.view.html.querySelector(
@@ -226,13 +315,19 @@ describe('calculate functionality', () => {
             setsGroupRelevance.value = '1';
             setsGroupRelevance.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             setsChildRelevance.value = '2';
             setsChildRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(child.textContent).to.equal('is relevant');
 
             setsGroupRelevance.value = '';
             setsGroupRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(child.textContent).to.equal('');
         });
@@ -244,6 +339,8 @@ describe('calculate functionality', () => {
 
             const child = form.model.xml.querySelector('is-child-relevant');
 
+            timers.runAll();
+
             expect(child.textContent).to.equal('');
 
             const setsGroupRelevance = form.view.html.querySelector(
@@ -256,15 +353,24 @@ describe('calculate functionality', () => {
             setsGroupRelevance.value = '1';
             setsGroupRelevance.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             setsChildRelevance.value = '2';
             setsChildRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(child.textContent).to.equal('is relevant');
 
             setsGroupRelevance.value = '';
             setsGroupRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
+
             setsGroupRelevance.value = '1';
             setsGroupRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(child.textContent).to.equal('is relevant');
         });
@@ -276,6 +382,9 @@ describe('calculate functionality', () => {
             form.init();
 
             const now = form.model.xml.querySelector('now');
+
+            timers.runAll();
+
             const initialValue = new Date(now.textContent).getTime();
 
             expect(Number.isNaN(initialValue)).not.to.be.true;
@@ -286,8 +395,13 @@ describe('calculate functionality', () => {
 
             toggleNow.value = '';
             toggleNow.dispatchEvent(events.Change());
+
+            timers.runAll();
+
             toggleNow.value = '1';
             toggleNow.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             const recalculatedValue = new Date(now.textContent).getTime();
 
@@ -300,6 +414,9 @@ describe('calculate functionality', () => {
             form.init();
 
             const now = form.model.xml.querySelector('now-grouped now');
+
+            timers.runAll();
+
             const initialValue = new Date(now.textContent).getTime();
 
             expect(Number.isNaN(initialValue)).not.to.be.true;
@@ -310,8 +427,13 @@ describe('calculate functionality', () => {
 
             toggleNow.value = '';
             toggleNow.dispatchEvent(events.Change());
+
+            timers.runAll();
+
             toggleNow.value = '1';
             toggleNow.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             const recalculatedValue = new Date(now.textContent).getTime();
 
@@ -325,6 +447,9 @@ describe('calculate functionality', () => {
 
             const computedByChild =
                 form.model.xml.querySelector('computed-by-child');
+
+            timers.runAll();
+
             const initialValue = computedByChild.textContent;
 
             expect(initialValue).to.equal('');
@@ -338,29 +463,41 @@ describe('calculate functionality', () => {
 
             setsGroupRelevance.value = '1';
             setsGroupRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
+
             setsChildRelevance.value = '2';
             setsChildRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(computedByChild.textContent).to.equal('is relevant');
 
             setsChildRelevance.value = '';
             setsChildRelevance.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(computedByChild.textContent).to.equal('');
 
             setsChildRelevance.value = '2';
             setsChildRelevance.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(computedByChild.textContent).to.equal('is relevant');
         });
 
-        it('restores values set arbitrarily when a node becomes relevant', async () => {
+        it('restores values set arbitrarily when a node becomes relevant', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
 
             const assignAnyValue =
                 form.model.xml.querySelector('assign-any-value');
+
+            timers.runAll();
+
             const initialValue = assignAnyValue.textContent;
 
             expect(initialValue).to.equal('');
@@ -372,6 +509,8 @@ describe('calculate functionality', () => {
             setsRelevance.value = '1';
             setsRelevance.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             const assignAnyValueInput = form.view.html.querySelector(
                 'input[name="/data/assign-any-value"]'
             );
@@ -379,26 +518,35 @@ describe('calculate functionality', () => {
             assignAnyValueInput.value = 'any value';
             assignAnyValueInput.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(assignAnyValue.textContent).to.equal('any value');
 
             setsRelevance.value = '';
             setsRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(assignAnyValue.textContent).to.equal('');
 
             setsRelevance.value = '1';
             setsRelevance.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(assignAnyValue.textContent).to.equal('any value');
         });
 
-        it('updates recalculated values in the view', async () => {
+        it('updates recalculated values in the view', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
 
             const assignAnyValue =
                 form.model.xml.querySelector('assign-any-value');
+
+            timers.runAll();
+
             const initialValue = assignAnyValue.textContent;
 
             expect(initialValue).to.equal('');
@@ -411,10 +559,14 @@ describe('calculate functionality', () => {
                 'input[name="/data/calc-by-assign-any-value"]'
             );
 
+            timers.runAll();
+
             expect(calculated.value).to.equal('');
 
             setsRelevance.value = '1';
             setsRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             const assignAnyValueInput = form.view.html.querySelector(
                 'input[name="/data/assign-any-value"]'
@@ -423,17 +575,58 @@ describe('calculate functionality', () => {
             assignAnyValueInput.value = 'any value';
             assignAnyValueInput.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(calculated.value).to.equal('any value');
 
             setsRelevance.value = '';
             setsRelevance.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             expect(calculated.value).to.equal('');
 
             setsRelevance.value = '1';
             setsRelevance.dispatchEvent(events.Change());
 
+            timers.runAll();
+
             expect(calculated.value).to.equal('any value');
+        });
+
+        it('does not recalculate unrelated questions when another field becomes non-relevant', () => {
+            const form = loadForm('recalculations.xml');
+
+            form.init();
+
+            const q1 = form.view.html.querySelector(
+                'input[name="/recalculations/q1"]'
+            );
+            const q2 = form.view.html.querySelector(
+                'input[name="/recalculations/q2"]'
+            );
+            const q3 = form.view.html.querySelector(
+                'input[name="/recalculations/q3"]'
+            );
+
+            q1.value = '1';
+            q1.dispatchEvent(events.Change());
+
+            timers.runAll();
+
+            expect(q2.value).to.equal('7');
+
+            q2.value = '8';
+
+            const calculationUpdateSpy = sandbox.spy(form.calc, 'updateCalc');
+
+            q3.value = '1';
+            q3.dispatchEvent(events.Change());
+
+            timers.runAll();
+
+            expect(calculationUpdateSpy).not.to.have.been.calledWith(q2);
+            expect(q2.value).to.equal('8');
         });
     });
 });

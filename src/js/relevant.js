@@ -12,7 +12,13 @@ import { closestAncestorUntil, getChild, getChildren } from './dom-utils';
  * @param {Element} node
  */
 export const isNodeRelevant = (node) =>
-    node.getAttribute('non-relevant') !== 'true';
+    node.closest('[non-relevant="true"], [non-relevant-value]:empty') == null;
+
+/**
+ * @param {HTMLElement} element
+ */
+const isViewElementRelevant = (element) =>
+    element.dataset.isNonRelevant !== 'true';
 
 /**
  * @param {Element} element
@@ -26,7 +32,7 @@ export const setNonRelevantValue = (element, value) => {
  * @param {Element} element
  */
 export const getNonRelevantValue = (element) =>
-    element.textContent ?? element.getAttribute('non-relevant-value');
+    element.getAttribute('non-relevant-value');
 
 export default {
     /**
@@ -46,6 +52,7 @@ export default {
 
         this.updateNodes(nodes, forceClearNonRelevant);
     },
+
     /**
      * @param {Array<Element>} nodes - Nodes to update
      * @param {boolean} forceClearNonRelevant - whether to empty the values of non-relevant nodes
@@ -242,98 +249,95 @@ export default {
     },
 
     /**
-     * @typedef ToggleNonRelevantModleNodesOptions
-     * @property {boolean} isRelevant
-     * @property {number} [index]
-     */
-
-    /**
-     * @param {Element} branchNode
+     * @param {HTMLElement} branchNode
      * @param {string} path
      * @param {ToggleNonRelevantModleNodesOptions} options
      */
     toggleNonRelevantModelNodes(branchNode, path, options) {
         if (config.excludeNonRelevant) {
-            const { index = this.form.input.getIndex(branchNode), isRelevant } =
-                options;
-            const modelNode = this.form.model.evaluate(
-                path,
-                'node',
-                null,
-                index
-            );
+            const { setRelevant } = options;
 
-            if (isNodeRelevant(modelNode) === isRelevant) {
+            if (isViewElementRelevant(branchNode) === setRelevant) {
                 return;
             }
 
-            /** @type {Element[]} */
+            branchNode.dataset.isNonRelevant = String(!setRelevant);
+
+            const checkRepeatIndex = branchNode.closest('.or-repeat') != null;
+
+            /** @type {import('./nodeset').Nodeset} */
+            let nodeSet;
+
+            /** @type {{ repeatIndex: number; repeatPath: string } | {}} */
+            let repeatInfo;
+
+            if (checkRepeatIndex) {
+                const repeatIndex = this.form.input.getIndex(branchNode);
+
+                nodeSet = this.form.model.node(path, repeatIndex);
+                repeatInfo = nodeSet.getClosestRepeat();
+            } else {
+                nodeSet = this.form.model.node(path);
+                repeatInfo = {};
+            }
+
+            // TODO: single element check to match `Nodeset#setVal`
+            const [modelNode] = nodeSet.getElements();
+
+            if (isNodeRelevant(modelNode) === setRelevant) {
+                return;
+            }
+
             const modelNodes = [modelNode, ...modelNode.querySelectorAll('*')];
 
-            /** @type {Map<Element, string>} */
-            const unassignedNodeValues = new Map();
-
-            const observer = new MutationObserver((mutations) => {
-                for (const mutation of mutations) {
-                    if (mutation.type === 'childList') {
-                        for (const addedNode of mutation.addedNodes) {
-                            unassignedNodeValues.delete(addedNode.target);
-                        }
-                    }
-                }
-            });
-
-            observer.observe(this.form.model.xml.documentElement, {
-                childList: true,
-                subtree: true,
-            });
+            /** @type {Element[]} */
+            const updatedElements = [];
 
             for (const node of modelNodes) {
-                if (isNodeRelevant(node) === isRelevant) {
+                if (
+                    node.hasAttribute('non-relevant') !== setRelevant &&
+                    node.hasAttribute('non-relevant-value') !== setRelevant
+                ) {
                     continue;
                 }
 
-                if (isRelevant) {
-                    const value = node.getAttribute('non-relevant-value');
+                const isLeafNode = node.children.length === 0;
+                const currentValue = isLeafNode
+                    ? setRelevant
+                        ? node.getAttribute('non-relevant-value')
+                        : node.textContent
+                    : null;
 
-                    if (value != null) {
-                        unassignedNodeValues.set(node, value);
+                if (setRelevant) {
+                    if (isLeafNode) {
+                        node.removeAttribute('non-relevant-value');
+                        node.textContent = currentValue;
+                    } else {
+                        node.removeAttribute('non-relevant');
                     }
-
-                    node.removeAttribute('non-relevant');
-                    node.removeAttribute('non-relevant-value');
+                } else if (isLeafNode) {
+                    node.setAttribute('non-relevant-value', currentValue);
+                    node.textContent = '';
                 } else {
                     node.setAttribute('non-relevant', 'true');
+                }
 
-                    if (node.children.length === 0) {
-                        const value = isRelevant
-                            ? node.getAttribute('non-relevant-value')
-                            : node.textContent;
-
-                        node.setAttribute('non-relevant-value', value);
-                        node.textContent = '';
-                    }
+                if (isLeafNode && currentValue !== '') {
+                    updatedElements.push(node);
                 }
             }
 
-            branchNode.dispatchEvent(events.Change());
-            branchNode.dispatchEvent(events.InputUpdate());
-
-            this.form.calc.update();
-
-            observer.disconnect();
-
-            if (isRelevant) {
-                for (const [node, value] of unassignedNodeValues.entries()) {
-                    const currentValue = node.textContent;
-
-                    if (value !== currentValue) {
-                        node.textContent = value;
-                        node.dispatchEvent(events.XFormsValueChanged());
-                    }
-                }
-
-                this.form.calc.update();
+            if (updatedElements.length > 0) {
+                setTimeout(() => {
+                    this.form.model.events.dispatchEvent(
+                        events.DataUpdate({
+                            nodes: updatedElements.map(
+                                ({ nodeName }) => nodeName
+                            ),
+                            ...repeatInfo,
+                        })
+                    );
+                });
             }
         }
     },
@@ -352,7 +356,7 @@ export default {
             change = true;
             branchNode.classList.remove('disabled', 'pre-init');
             this.toggleNonRelevantModelNodes(branchNode, path, {
-                isRelevant: true,
+                setRelevant: true,
             });
             // Update calculated items, both individual question or descendants of group
             this.form.calc.update({
@@ -395,7 +399,7 @@ export default {
             }
 
             this.toggleNonRelevantModelNodes(branchNode, path, {
-                isRelevant: false,
+                setRelevant: false,
             });
             this.deactivate(branchNode);
         }

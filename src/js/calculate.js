@@ -89,7 +89,7 @@ export default {
                         dataNodes.includes(node)
                     )[0];
                     props.index = dataNodes.indexOf(dataNode);
-                    this._updateCalc(control, props, emptyNonRelevant);
+                    this.updateCalc(control, props, emptyNonRelevant);
                 } else if (control.type === 'hidden') {
                     /*
                      * This case is the consequence of the  decision to place calculated items without a visible form control,
@@ -99,7 +99,7 @@ export default {
                     dataNodes.forEach((el, index) => {
                         const obj = Object.create(props);
                         obj.index = index;
-                        this._updateCalc(control, obj, emptyNonRelevant);
+                        this.updateCalc(control, obj, emptyNonRelevant);
                     });
                 } else {
                     /*
@@ -114,11 +114,11 @@ export default {
                         props.index = repeatSiblings.indexOf(
                             control.closest('.or-repeat')
                         );
-                        this._updateCalc(control, props, emptyNonRelevant);
+                        this.updateCalc(control, props, emptyNonRelevant);
                     }
                 }
             } else if (dataNodes.length === 1) {
-                this._updateCalc(control, props, emptyNonRelevant);
+                this.updateCalc(control, props, emptyNonRelevant);
             }
         });
     },
@@ -240,7 +240,7 @@ export default {
                     const obj = Object.create(props);
                     const control = actionControl;
                     obj.index = index;
-                    this._updateCalc(control, obj);
+                    this.updateCalc(control, obj);
                 });
             } else if (event.type === new events.XFormsValueChanged().type) {
                 // Control for xforms-value-changed is located elsewhere, or does not exist.
@@ -251,10 +251,10 @@ export default {
                     props.index = 0;
                     control = this.form.input.find(props.name, 0);
                 }
-                this._updateCalc(control, props);
+                this.updateCalc(control, props);
             } else if (dataNodes[props.index]) {
                 const control = actionControl;
-                this._updateCalc(control, props);
+                this.updateCalc(control, props);
             } else {
                 console.error(
                     'performAction called for node that does not exist in model.'
@@ -265,11 +265,12 @@ export default {
     /**
      * Updates a calculation.
      *
+     * @private
      * @param {Element} control - view element containing calculation
      * @param {*} props - properties of a calculation element
      * @param {boolean} [emptyNonRelevant] - Whether to set the calculation result to empty if non-relevant
      */
-    _updateCalc(control, props, emptyNonRelevant) {
+    updateCalc(control, props, emptyNonRelevant) {
         if (
             !emptyNonRelevant &&
             props.type !== 'setvalue' &&
