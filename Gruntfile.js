@@ -3,6 +3,7 @@
  * this build file with one of your own in your project root.
  */
 const fs = require('fs');
+const path = require('path');
 const nodeSass = require('node-sass');
 const transformer = require('enketo-transformer');
 
@@ -198,7 +199,10 @@ module.exports = (grunt) => {
             const jsModuleExists = fileExists(formsJsPath);
 
             if (!jsModuleExists) {
-                fs.writeFileSync('export default {}');
+                fs.mkdirSync(path.dirname(formsJsPath), {
+                    recursive: true,
+                });
+                fs.writeFileSync(formsJsPath, 'export default {}');
             }
 
             const esmLinkExists = fileExists(formsESMPath);
