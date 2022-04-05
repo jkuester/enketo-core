@@ -33,6 +33,7 @@ import FormLogicError from './form-logic-error';
 import events from './event';
 import './plugins';
 import './extend';
+import { unblock } from './timers';
 
 /**
  * @typedef FormOptions
@@ -93,7 +94,7 @@ Form.prototype = {
      * @type {Array}
      */
     get evaluationCascade() {
-        return [
+        let baseEvaluationCascade = [
             this.calc.update.bind(this.calc),
             this.repeats.countUpdate.bind(this.repeats),
             this.relevant.update.bind(this.relevant),
@@ -102,7 +103,21 @@ Form.prototype = {
             this.required.update.bind(this.required),
             this.readonly.update.bind(this.readonly),
             this.validationUpdate,
-        ].concat(this.evaluationCascadeAdditions);
+        ];
+
+        if (config.recomputeAsync) {
+            const fns = baseEvaluationCascade.slice();
+
+            baseEvaluationCascade = [
+                (...args) => {
+                    unblock(() => {
+                        fns.forEach((fn) => fn.call(this, ...args));
+                    });
+                },
+            ];
+        }
+
+        return [...baseEvaluationCascade, ...this.evaluationCascadeAdditions];
     },
     /**
      * @type {string}

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<h:html xmlns="http://www.w3.org/2002/xforms" 
-    xmlns:OpenClinica="http://openclinica.com/odm" 
-    xmlns:enk="http://enketo.org/xforms" 
-    xmlns:ev="http://www.w3.org/2001/xml-events" 
-    xmlns:h="http://www.w3.org/1999/xhtml" 
-    xmlns:jr="http://openrosa.org/javarosa" 
-    xmlns:oc="http://openclinica.org/xforms" 
-    xmlns:orx="http://openrosa.org/xforms" 
+<h:html xmlns="http://www.w3.org/2002/xforms"
+    xmlns:OpenClinica="http://openclinica.com/odm"
+    xmlns:enk="http://enketo.org/xforms"
+    xmlns:ev="http://www.w3.org/2001/xml-events"
+    xmlns:h="http://www.w3.org/1999/xhtml"
+    xmlns:jr="http://openrosa.org/javarosa"
+    xmlns:oc="http://openclinica.org/xforms"
+    xmlns:orx="http://openrosa.org/xforms"
     xmlns:xsd="http://www.w3.org/2001/XMLSchema">
     <h:head>
         <h:title>Vital Signs</h:title>
@@ -16,6 +16,7 @@
                     <yn/>
                     <rg>
                         <row/>
+                        <is-first-row/>
                     </rg>
                     <meta>
                         <instanceID/>
@@ -24,6 +25,7 @@
             </instance>
             <bind nodeset="/data/rg" relevant=" /data/yn  = 1"/>
             <bind calculate="position(..)" nodeset="/data/rg/row" readonly="true()" type="int"/>
+            <bind calculate="position(..)" nodeset="/data/rg/is-first-row" relevant="position(..) = /data/yn" type="int"/>
         </model>
     </h:head>
     <h:body>
@@ -38,8 +40,15 @@
             <label/>
             <repeat nodeset="/data/rg">
                 <input ref="/data/rg/row">
-                    <label>This is Repeating Group entry:</label>
+                    <label>
+                        This is Repeating Group entry:
+                        Is first row?
+                        <output value="/data/rg/is-first-row"/>
+                    </label>
                 </input>
+                <!-- <input ref="/data/rg/is-first-row">
+                    <label>This is relevant if it's in the first row</label>
+                </input> -->
             </repeat>
         </group>
     </h:body>

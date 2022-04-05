@@ -12,6 +12,7 @@ import { Form } from './src/js/form';
 import fileManager from './src/js/file-manager';
 import events from './src/js/event';
 import { fixGrid, styleToAll, styleReset } from './src/js/print';
+import testForms from './test/mock/forms';
 
 let form;
 let formStr;
@@ -30,8 +31,37 @@ if (xform && xform !== 'null') {
     document.querySelector('.guidance').remove();
     xform = /^https?:\/\//.test(xform) ? xform : `${location.origin}/${xform}`;
     const transformerUrl = `http://${location.hostname}:8085/transform?xform=${xform}`;
-    fetch(transformerUrl)
-        .then((response) => response.json())
+
+    const request =
+        xform === 'http://localhost:8005/va_who_v1_5_3.xml'
+            ? Promise.resolve({ default: testForms })
+                  .then(({ default: de, ...rest }) => {
+                      console.log('de', de, 're', rest);
+                      return { default: de, ...rest };
+                  })
+                  .then(
+                      ({
+                          default: {
+                              'va_who_v1_5_3.xml': {
+                                  html_form: form,
+                                  xml_model: model,
+                              },
+                          },
+                      }) => ({
+                          form,
+                          model,
+                      })
+                  )
+            : fetch(transformerUrl)
+                  // .then((response) => Promise.all([response.text(), response]))
+                  // .then(([result, response]) => {
+                  //     console.log('result', result);
+
+                  //     return response;
+                  // })
+                  .then((response) => response.json());
+
+    request
         .then((survey) => {
             formStr = survey.form;
             modelStr = survey.model;
@@ -42,7 +72,8 @@ if (xform && xform !== 'null') {
             document.querySelector('.form-header').after(formEl);
             initializeForm();
         })
-        .catch(() => {
+        .catch((error) => {
+            console.error('error?', error);
             window.alert(
                 `Error fetching form from enketo-transformer at:\n\n${transformerUrl}.\n\nPlease check that enketo-transformer has been started.`
             );

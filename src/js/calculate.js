@@ -6,6 +6,7 @@ import config from 'enketo/config';
 import { getAncestors, getSiblingElementsAndSelf } from './dom-utils';
 import events from './event';
 import { getCurrentPosition } from './geolocation';
+import { unblock } from './timers';
 
 export default {
     /**
@@ -190,7 +191,7 @@ export default {
      * @param {'setvalue' | 'setgeopoint'} action - the action to perform.
      * @param {CustomEvent} [event] - the event type that triggered the action.
      */
-    performAction(action, event) {
+    performAction(action, event, depth = 0) {
         if (!event) {
             return;
         }
@@ -201,7 +202,7 @@ export default {
             );
         }
 
-        const nodes = this._getNodesForAction(action, event);
+        const nodes = this._getNodesForAction(action, event) ?? [];
 
         nodes.forEach((actionControl) => {
             const name = this.form.input.getName(actionControl);
@@ -255,9 +256,23 @@ export default {
             } else if (dataNodes[props.index]) {
                 const control = actionControl;
                 this.updateCalc(control, props);
-            } else {
+            } else if (this.form.initialized) {
                 console.error(
                     'performAction called for node that does not exist in model.'
+                );
+            } else if (depth === 0) {
+                // Events lose references to these values when passed to an async context
+                const eventData = {
+                    ...event,
+                    type: event.type,
+                };
+
+                // In some circumstances, there will be nodes available on first load
+                // which are not present until the form's initialized. This slight
+                // delay allows form initialization to complete so those nodes may
+                // be resolved.
+                return unblock(() =>
+                    this.performAction(action, eventData, depth + 1)
                 );
             }
         });

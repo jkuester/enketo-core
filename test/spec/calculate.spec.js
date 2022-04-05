@@ -209,28 +209,26 @@ describe('calculate functionality', () => {
     });
 
     describe('Excluding non-relevant nodes', () => {
-        /** @type {SinonFakeTimers} */
+        /** @type {import('sinon').SinonFakeTimers} */
         let timers;
 
         beforeEach(() => {
             excludeNonRelevant = true;
-
-            timers = sandbox.useFakeTimers();
+            timers = sandbox.useFakeTimers(Date.now());
         });
 
         afterEach(() => {
             timers.runAll();
-
             timers.clearTimeout();
             timers.clearInterval();
             timers.restore();
-            sandbox.restore();
         });
 
         it('recalculates non-relevant values when they are excluded from calculations', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const grp = form.model.xml.querySelector('grp');
 
@@ -261,6 +259,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const grp = form.model.xml.querySelector('grp');
 
@@ -298,6 +297,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const child = form.model.xml.querySelector('is-child-relevant');
 
@@ -336,6 +336,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const child = form.model.xml.querySelector('is-child-relevant');
 
@@ -380,6 +381,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const now = form.model.xml.querySelector('now');
 
@@ -412,6 +414,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const now = form.model.xml.querySelector('now-grouped now');
 
@@ -444,6 +447,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const computedByChild =
                 form.model.xml.querySelector('computed-by-child');
@@ -492,6 +496,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const assignAnyValue =
                 form.model.xml.querySelector('assign-any-value');
@@ -541,6 +546,7 @@ describe('calculate functionality', () => {
             const form = loadForm('relevant-calcs.xml', null);
 
             form.init();
+            timers.runAll();
 
             const assignAnyValue =
                 form.model.xml.querySelector('assign-any-value');
@@ -598,6 +604,7 @@ describe('calculate functionality', () => {
             const form = loadForm('recalculations.xml');
 
             form.init();
+            timers.runAll();
 
             const q1 = form.view.html.querySelector(
                 'input[name="/recalculations/q1"]'
@@ -617,6 +624,9 @@ describe('calculate functionality', () => {
             expect(q2.value).to.equal('7');
 
             q2.value = '8';
+            q3.dispatchEvent(events.Change());
+
+            timers.runAll();
 
             const calculationUpdateSpy = sandbox.spy(form.calc, 'updateCalc');
 
@@ -633,6 +643,7 @@ describe('calculate functionality', () => {
             const form = loadForm('va_who_v1_5_3.xml');
 
             form.init();
+            timers.runAll();
 
             const didConsent = form.view.html.querySelector(
                 '[name="/data/respondent_backgr/Id10013"][value="yes"]'
@@ -789,6 +800,7 @@ describe('calculate functionality', () => {
             const form = loadForm('va-who-minimal.xml');
 
             form.init();
+            timers.runAll();
 
             const didHaveFever = form.view.html.querySelector(
                 '[name="/data/consented/illhistory/signs_symptoms_final_illness/did-have-fever"]'

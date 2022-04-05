@@ -8,11 +8,12 @@ import config from 'enketo/config';
 import events from './event';
 import { closestAncestorUntil, getChild, getChildren } from './dom-utils';
 
+const nonRelevantValues = new Map();
+
 /**
  * @param {Element} node
  */
-export const isNodeRelevant = (node) =>
-    node.closest('[non-relevant="true"], [non-relevant-value]:empty') == null;
+export const isNodeRelevant = (node) => !nonRelevantValues.has(node);
 
 /**
  * @param {HTMLElement} element
@@ -25,14 +26,13 @@ const isViewElementRelevant = (element) =>
  * @param {string} value
  */
 export const setNonRelevantValue = (element, value) => {
-    element.setAttribute('non-relevant-value', value);
+    nonRelevantValues.set(element, value);
 };
 
 /**
  * @param {Element} element
  */
-export const getNonRelevantValue = (element) =>
-    element.getAttribute('non-relevant-value');
+export const getNonRelevantValue = (element) => nonRelevantValues.get(element);
 
 export default {
     /**
@@ -263,7 +263,8 @@ export default {
 
             branchNode.dataset.isNonRelevant = String(!setRelevant);
 
-            const checkRepeatIndex = branchNode.closest('.or-repeat') != null;
+            const closestRepeat = branchNode.parentNode?.closest('.or-repeat');
+            const checkRepeatIndex = closestRepeat != null;
 
             /** @type {import('./nodeset').Nodeset} */
             let nodeSet;
@@ -274,52 +275,49 @@ export default {
             if (checkRepeatIndex) {
                 const repeatIndex = this.form.input.getIndex(branchNode);
 
-                nodeSet = this.form.model.node(path, repeatIndex);
+                nodeSet = this.form.model.node(
+                    `${path}/descendant-or-self::*`,
+                    repeatIndex
+                );
                 repeatInfo = nodeSet.getClosestRepeat();
             } else {
-                nodeSet = this.form.model.node(path);
+                nodeSet = this.form.model.node(`${path}/descendant-or-self::*`);
                 repeatInfo = {};
             }
 
-            // TODO: single element check to match `Nodeset#setVal`
-            const [modelNode] = nodeSet.getElements();
+            const modelNodes = nodeSet.getElements().filter((node) => {
+                const isNodeNonRelevant = !isNodeRelevant(node);
 
-            if (isNodeRelevant(modelNode) === setRelevant) {
+                return isNodeNonRelevant === setRelevant;
+            });
+
+            if (modelNodes.length === 0) {
                 return;
             }
-
-            const modelNodes = [modelNode, ...modelNode.querySelectorAll('*')];
 
             /** @type {Element[]} */
             const updatedElements = [];
 
             for (const node of modelNodes) {
-                if (
-                    node.hasAttribute('non-relevant') !== setRelevant &&
-                    node.hasAttribute('non-relevant-value') !== setRelevant
-                ) {
-                    continue;
-                }
-
                 const isLeafNode = node.children.length === 0;
                 const currentValue = isLeafNode
                     ? setRelevant
-                        ? node.getAttribute('non-relevant-value')
+                        ? nonRelevantValues.get(node)
                         : node.textContent
                     : null;
 
                 if (setRelevant) {
                     if (isLeafNode) {
-                        node.removeAttribute('non-relevant-value');
                         node.textContent = currentValue;
-                    } else {
-                        node.removeAttribute('non-relevant');
                     }
-                } else if (isLeafNode) {
-                    node.setAttribute('non-relevant-value', currentValue);
-                    node.textContent = '';
+
+                    nonRelevantValues.delete(node);
                 } else {
-                    node.setAttribute('non-relevant', 'true');
+                    if (isLeafNode) {
+                        node.textContent = '';
+                    }
+
+                    setNonRelevantValue(node, currentValue);
                 }
 
                 if (isLeafNode && currentValue !== '') {
@@ -328,16 +326,12 @@ export default {
             }
 
             if (updatedElements.length > 0) {
-                setTimeout(() => {
-                    this.form.model.events.dispatchEvent(
-                        events.DataUpdate({
-                            nodes: updatedElements.map(
-                                ({ nodeName }) => nodeName
-                            ),
-                            ...repeatInfo,
-                        })
-                    );
-                });
+                this.form.model.events.dispatchEvent(
+                    events.DataUpdate({
+                        nodes: updatedElements.map(({ nodeName }) => nodeName),
+                        ...repeatInfo,
+                    })
+                );
             }
         }
     },
