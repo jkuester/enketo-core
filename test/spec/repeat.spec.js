@@ -1109,6 +1109,64 @@ describe('repeat functionality', () => {
             ]);
         });
 
+        it('does not restore non-relevant nodes when a parent repeat becomes relevant again', () => {
+            const form = loadForm('repeat-count.xml');
+
+            form.init();
+            timers.runAll();
+
+            const setRepeatRelevant = form.view.html.querySelector(
+                '[data-name="/dynamic-repeat-count/is-repeat-relevant"][value="yes"]'
+            );
+
+            setRepeatRelevant.checked = true;
+            setRepeatRelevant.dispatchEvent(event.Change());
+
+            timers.runAll();
+
+            const setSecondNumberNonRelevant = form.view.html.querySelector(
+                '.or-repeat.clone [data-name="/dynamic-repeat-count/rep/is-num-relevant"][value="no"]'
+            );
+
+            setSecondNumberNonRelevant.checked = true;
+            setSecondNumberNonRelevant.dispatchEvent(event.Change());
+
+            timers.runAll();
+
+            const repeatNums = Array.from(
+                form.model.xml.querySelectorAll('num')
+            );
+
+            expect(repeatNums.map((node) => node.textContent)).to.deep.equal([
+                '5',
+                '',
+            ]);
+
+            const setRepeatNonRelevant = form.view.html.querySelector(
+                '[data-name="/dynamic-repeat-count/is-repeat-relevant"][value="no"]'
+            );
+
+            setRepeatNonRelevant.checked = true;
+            setRepeatNonRelevant.dispatchEvent(event.Change());
+
+            timers.runAll();
+
+            expect(repeatNums.map((node) => node.textContent)).to.deep.equal([
+                '',
+                '',
+            ]);
+
+            setRepeatRelevant.checked = true;
+            setRepeatRelevant.dispatchEvent(event.Change());
+
+            timers.runAll();
+
+            expect(repeatNums.map((node) => node.textContent)).to.deep.equal([
+                '5',
+                '',
+            ]);
+        });
+
         it('excludes a non-relevant value in a repeat initialized with odk-instance-first-load', () => {
             const form = loadForm('repeat-irrelevant-date.xml');
 
