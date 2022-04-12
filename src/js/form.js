@@ -33,6 +33,16 @@ import FormLogicError from './form-logic-error';
 import events from './event';
 import './plugins';
 import './extend';
+import { unblock } from './timers';
+
+/**
+ * @typedef FormOptions
+ * @property {string} [language] Overrides the default languages rules of the XForm itself. Pass any valid and present-in-the-form IANA subtag string, e.g. `ar`.
+ * @property {boolean} [printRelevantOnly] If `printRelevantOnly` is set to `true`
+ *   or not set at all, printing the form only includes what is visible, ie. all the
+ *   groups and questions that do not have a `relevant` expression or for which the
+ *   expression evaluates to `true`.
+ */
 
 /**
  * Class: Form
@@ -41,9 +51,7 @@ import './extend';
  *
  * @param {Element} formEl - HTML form element (a product of Enketo Transformer after transforming a valid ODK XForm)
  * @param {FormDataObj} data - Data object containing XML model, (partial) XML instance-to-load, external data and flag about whether instance-to-load has already been submitted before.
- * @param {object} [options] - form options
- * @param {boolean} [options.printRelevantOnly] - If `printRelevantOnly` is set to `true` or not set at all, printing the form only includes what is visible, ie. all the groups and questions that do not have a `relevant` expression or for which the expression evaluates to `true`.
- * @param {string} [options.language] - Overrides the default languages rules of the XForm itself. Pass any valid and present-in-the-form IANA subtag string, e.g. `ar`.
+ * @param {FormOptions} [options]
  * @class
  */
 function Form(formEl, data, options) {
@@ -86,7 +94,7 @@ Form.prototype = {
      * @type {Array}
      */
     get evaluationCascade() {
-        return [
+        let baseEvaluationCascade = [
             this.calc.update.bind(this.calc),
             this.repeats.countUpdate.bind(this.repeats),
             this.relevant.update.bind(this.relevant),
@@ -95,7 +103,21 @@ Form.prototype = {
             this.required.update.bind(this.required),
             this.readonly.update.bind(this.readonly),
             this.validationUpdate,
-        ].concat(this.evaluationCascadeAdditions);
+        ];
+
+        if (config.recomputeAsync) {
+            const fns = baseEvaluationCascade.slice();
+
+            baseEvaluationCascade = [
+                (...args) => {
+                    unblock(() => {
+                        fns.forEach((fn) => fn.call(this, ...args));
+                    });
+                },
+            ];
+        }
+
+        return [...baseEvaluationCascade, ...this.evaluationCascadeAdditions];
     },
     /**
      * @type {string}

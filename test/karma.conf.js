@@ -29,6 +29,10 @@ module.exports = (config) => {
             },
         ],
 
+        esbuild: {
+            target: ['chrome89', 'edge89', 'firefox90', 'safari13'],
+        },
+
         // list of files to exclude
         exclude: [],
 
